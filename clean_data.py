@@ -15,6 +15,6 @@ for col in date_columns:
 yes_no_columns = ['payment_submitted?', 'application_signed?'] #Converting yes/no answers to boolean values
 for col in yes_no_columns:
     if col in df.columns:
-        df[col] = df[col].str.strip().str.lower().map({'yes': True, 'no': False})
+        df[col] = df[col].astype(str).str.strip().str.lower()
 
 df.to_csv('cleaned_data.csv', index=False)
