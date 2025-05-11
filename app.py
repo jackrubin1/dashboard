@@ -349,10 +349,35 @@ elif page == "Support by Demographics":
     st.write("Table (Total $ Support by Insurance Type):")
     st.dataframe(insurance_support)
 
-
-
 elif page == "Time to Send Support":
     st.subheader("Time Between Request and Support")
+
+    import pandas as pd
+    import altair as alt
+
+    df['grant_req_date'] = pd.to_datetime(df['grant_req_date'], errors='coerce') #cleaning columns
+    df['payment_submitted?'] = df['payment_submitted?'].astype(str).str.strip().str.lower()
+
+    date_mask = df['payment_submitted?'].str.contains(r'\d{4}-\d{2}-\d{2}') #filter to date strings
+    response_df = df[date_mask].copy()
+
+    response_df['payment_date'] = pd.to_datetime(response_df['payment_submitted?'], errors='coerce') #convert to datetime
+
+    response_df['days_to_payment'] = (response_df['payment_date'] - response_df['grant_req_date']).dt.days #calculating difference in days
+
+    response_df = response_df[response_df['days_to_payment'] > 0] #get rid of invalid values
+
+    st.write("### Time Between Request and Payment (in Days)") #histogram
+    hist = alt.Chart(response_df).mark_bar().encode(
+        alt.X('days_to_payment', bin=alt.Bin(maxbins=30), title='Days to Receive Payment'),
+        alt.Y('count()', title='Number of Patients')).properties(width=700, height=400)
+
+    st.altair_chart(hist)
+
+    st.write("### Summary Statistics")
+    st.write(response_df['days_to_payment'].describe()) #table summary
+
+    st.write("* Excluding responses of No & Yes (they didn't provide a date)")
 
 elif page == "Unused Grants & Averages":
     st.subheader("Grant Usage and Assistance Averages")
