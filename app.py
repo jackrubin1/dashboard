@@ -382,6 +382,53 @@ elif page == "Time to Send Support":
 elif page == "Unused Grants & Averages":
     st.subheader("Grant Usage and Assistance Averages")
 
+    st.subheader("Remaining Grant Amounts, Average Amount Given by Type of Assistance")
+
+    df['amount'] = pd.to_numeric(df['amount'], errors='coerce') #cleaning amount column
+    df['remaining_balance'] = pd.to_numeric(df['remaining_balance'], errors='coerce')
+    df['app_year'] = pd.to_numeric(df['app_year'], errors='coerce')
+
+    unused_df = df[df['remaining_balance'] > 0] #find patients with balance > 0
+
+    unused_by_year = unused_df.groupby('app_year')['patient_id#'].count() #group by year
+
+    patients_with_remaining = ( #counting patients by year
+        unused_df.groupby('app_year')['patient_id#']
+        .count()
+        .sort_index())
+
+    patients_with_remaining = (
+        unused_df.groupby('app_year')['patient_id#']
+        .count()
+        .rename('Number of Patients') #renaming so it doesn't say 'PatientID#' which is what it was counting.
+        .sort_index())
+
+    st.write("### Number of Patients With Unused Grant Funds (by Application Year)")
+    st.bar_chart(patients_with_remaining)
+    st.dataframe(patients_with_remaining)
+
+    avg_remaining_by_year = ( #finding average remaining balance
+        unused_df.groupby('app_year')['remaining_balance']
+        .mean()
+        .sort_index())
+
+    st.write("### Average Remaining Balance (If balance > 0)")
+    st.bar_chart(avg_remaining_by_year)
+
+    st.dataframe(avg_remaining_by_year)
+
+    df['type_of_assistance_(class)'] = df['type_of_assistance_(class)'].astype(str).str.strip().str.title() #cleaning assistance type column
+
+    avg_amount_by_type = ( #calculating average
+        df.groupby('type_of_assistance_(class)')['amount']
+        .mean()
+        .sort_values(ascending=False))
+
+    st.write("### Average Amount Given by Assistance Type")
+    st.bar_chart(avg_amount_by_type)
+
+    st.dataframe(avg_amount_by_type)
+
 elif page == "Impact Summary":
     st.subheader("Yearly Impact Summary for Stakeholders")
 
