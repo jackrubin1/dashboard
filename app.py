@@ -58,6 +58,298 @@ if page == "Ready for Review":
 
 elif page == "Support by Demographics":
     st.subheader("Support Distribution by Demographics")
+#by state v
+
+    state_abbrev = { #abbreviating state names
+        'IOWA': 'IA',
+        'FLORIDA': 'FL',
+        'NEBRASKA': 'NE',
+        'SOUTH DAKOTA': 'SD',
+        'KANSAS': 'KS'}
+    
+    df['pt_state'] = df['pt_state'].replace(state_abbrev)
+
+    df['pt_state'] = df['pt_state'].astype(str).str.strip().str.upper() #standardizing
+
+    valid_states = {'FL', 'IA', 'NE', 'SD', 'KS'}
+
+    df.loc[~df['pt_state'].isin(valid_states), 'pt_state'] = 'UNKNOWN' #invalid entries go in 'Unknown'
+
+    df['amount'] = pd.to_numeric(df['amount'], errors='coerce') #making sure 'amount' is numeric
+
+    state_df = df[['pt_state', 'amount']].dropna() #drop entries with missing amount
+
+    support_by_state = state_df.groupby('pt_state')['amount'].sum().sort_values(ascending=False) #group and sum by state
+
+    support_by_state.rename(index={'UNKNOWN': 'Unknown'}, inplace=True) #rename for display
+
+    st.write("### Total Support Given by State")
+    st.bar_chart(support_by_state)
+
+    st.write("Table (Total $ Support by State):")
+    st.dataframe(support_by_state)
+
+####### bar chart & table, support by state ^
+####### pie chart, support by state v
+
+    import plotly.express as px
+
+    states = 5
+    top_states = support_by_state.head(states)
+    other_sum = support_by_state[states:].sum()
+    combined = pd.concat([top_states]) #combining the states
+
+    combined_df = combined.reset_index() #resetting index for plotly
+    combined_df.columns = ['State', 'Total Support']
+
+    fig = px.pie(combined_df, names='State', values='Total Support', title='Support Distribution % by State (Interactive)', hole=0.1) #interactive pie chart
+    
+    fig.update_traces(textinfo='label+percent', pull=[0.05]*len(combined_df))
+
+    st.plotly_chart(fig)
+
+########### Pie chart ^
+
+#by state ^
+    st.write("---------------")
+    st.write("---------------")
+#by gender v
+
+########### Bar chart v
+
+    df['gender'] = (
+        df['gender']
+        .fillna('Unknown')         #make NaNs = Unknown
+        .astype(str)
+        .str.strip()
+        .str.title()                #capitalize words
+        .replace({'': 'Unknown'}))  # blanks = Unknown
+
+    gender_support = (              #group by gender and sum amount
+     df.groupby('gender')['amount']
+     .sum()
+     .sort_values(ascending=False))
+
+    st.write("### Total Support Given by Gender") #display chart & table
+    st.bar_chart(gender_support)
+
+    st.write("Table (Total $ Support by Gender):")
+    st.dataframe(gender_support)
+
+#by gender ^
+
+    st.write("---------------")
+    st.write("---------------")
+#by age v
+
+#######
+    import datetime
+
+    current_year = datetime.datetime.now().year #importing today's year
+
+    def clean_dob(val):
+        try:
+            date = pd.to_datetime(val, errors='coerce') #use datetime to standardize 'YYYY' and '1/1/YYYY')
+            if date is pd.NaT:
+                return None
+            year = date.year
+            if year > current_year or year < 1900:  # getting rid of the typos (2973, 2064)
+                return None
+            return year
+        except:
+            return None
+
+    df['dob_clean'] = df['dob'].apply(clean_dob)
+
+    df['age'] = current_year - df['dob_clean'] # calculating their age
+
+    def assign_age_group(age): #putting them in groups for the plot
+        if pd.isna(age):
+            return 'Unknown'
+        elif age < 18:
+            return '0–17'
+        elif age < 35:
+            return '18–34'
+        elif age < 50:
+            return '35–49'
+        elif age < 65:
+            return '50–64'
+        else:
+            return '65+'
+
+    df['age_group'] = df['age'].apply(assign_age_group)
+
+    age_support = (
+        df.groupby('age_group')['amount']
+        .sum()
+        .reindex(['0–17', '18–34', '35–49', '50–64', '65+', 'Unknown']))
+
+    age_counts = (
+        df['age_group']
+        .value_counts()
+        .reindex(['0–17', '18–34', '35–49', '50–64', '65+', 'Unknown'])) #counting number of patients per age group
+
+    st.write("### Total Support Given by Age Group")
+    st.bar_chart(age_support)
+
+    st.write("Table (Total $ Support by Age Group):")
+    st.dataframe(age_support)
+
+    st.write("Table (Number of Patients by Age Group):")
+    st.dataframe(age_counts)
+
+#by age ^
+    st.write("---------------")
+    st.write("---------------")
+#by income v
+
+#######scatterplot v
+
+    import altair as alt
+
+    df['total_household_gross_monthly_income'] = pd.to_numeric(df['total_household_gross_monthly_income'], errors='coerce') #convert income + household size, some cleaning
+    df['household_size'] = pd.to_numeric(df['household_size'], errors='coerce')
+
+    df = df[df['household_size'] > 0] #avoiding invalid sizes
+
+    df['per_capita_income'] = df['total_household_gross_monthly_income'] / df['household_size'] #calculating per capita income
+
+    filtered_df = df[(df['per_capita_income'] < 10000) & (df['amount'] < 10000)] #filter out outliers (might not be worth using?)
+
+    st.write("### Relationship Between Income(per capita by household) and Amount of Support Given") #scatterplot using altair
+
+    scatter = alt.Chart(filtered_df).mark_circle(size=60, opacity=0.5).encode(
+        x=alt.X('per_capita_income', title='Per Capita Monthly Income (Per Person in Household) ($)'), y=alt.Y('amount', title='Support Amount ($)'), tooltip=['per_capita_income', 'amount']
+    ).properties(
+        width=700,
+        height=400,
+        title='Scatter Plot: Income vs Support Amount')
+
+    st.altair_chart(scatter)
+
+##################################### scatter ^------v boxplots
+
+    import altair as alt
+    import numpy as np
+
+    df['total_household_gross_monthly_income'] = pd.to_numeric(df['total_household_gross_monthly_income'], errors='coerce') #calculating per capita income, some cleaning
+    df['household_size'] = pd.to_numeric(df['household_size'], errors='coerce')
+    df['amount'] = pd.to_numeric(df['amount'], errors='coerce')
+
+    df = df[df['household_size'] > 0]
+    df['per_capita_income'] = df['total_household_gross_monthly_income'] / df['household_size']
+
+    def bin_income(val): #putting the per capita values into ranges
+        if pd.isna(val):
+            return 'Unknown'
+        elif val < 500:
+            return '<$500'
+        elif val < 1000:
+            return '$500–999'
+        elif val < 1500:
+            return '$1000–1499'
+        elif val < 2000:
+            return '$1500–1999'
+        elif val < 3000:
+            return '$2000–2999'
+        else:
+            return '$3000+'
+
+    df['income_group'] = df['per_capita_income'].apply(bin_income)
+
+    filtered = df[df['amount'].notna() & df['income_group'].notna()]
+
+    st.write("### Support Amounts by Income Group(per capita by household)") 
+
+    box = alt.Chart(filtered).mark_boxplot(extent='min-max', median={'color': 'black'}).encode( #boxplot
+        x=alt.X('income_group:N', title='Per Capita Income Group'),
+        y=alt.Y('amount:Q', title='Support Amount ($)'),
+        color='income_group:N',
+    ).properties(
+        width=600,
+        height=400)
+
+    st.altair_chart(box)
+
+################### boxplot1^
+################## boxplot2v
+
+    income_order = ['<$500', '$500–999', '$1000–1499', '$1500–1999', '$2000–2999', '$3000+', 'Unknown'] #making new order
+
+    df['income_group'] = df['per_capita_income'].apply(bin_income)
+
+    base = alt.Chart(filtered).mark_boxplot(extent='min-max', median={'color': 'lightgray'}, ticks=False  #base boxplot with color
+    ).encode(
+        x=alt.X('income_group:N', sort=income_order, title='Per Capita Income Group'),
+        y=alt.Y('amount:Q', title='Support Amount ($)'),
+        color=alt.Color('income_group:N', legend=None))
+
+    whiskers = alt.Chart(filtered).mark_rule(color='white').encode( #trying to change the colors of the whiskers so you can see them
+        x=alt.X('income_group:N', sort=income_order),
+        y='min(amount):Q',
+        y2='max(amount):Q')
+
+    boxplot = base + whiskers
+
+    st.altair_chart(boxplot.properties(width=600, height=400))
+
+
+#by income ^
+    st.write("---------------")
+    st.write("---------------")
+#by insurance v
+
+    df['insurance_type'] = ( #standardizing insurance type into categories
+        df['insurance_type']
+        .fillna('Unknown')
+        .astype(str)
+        .str.strip()
+        .str.title()
+        .replace({
+            '': 'Unknown',
+            'Missing': 'Unknown',
+            'Uninsurred': 'Uninsured',
+            'Uninsured': 'Uninsured',
+            'Unisured': 'Uninsured',
+            'Medicaid & Medicare': 'Medicare & Medicaid',
+            'Medicare & Medicaid': 'Medicare & Medicaid'}))
+
+    insurance_support = (
+        df.groupby('insurance_type')['amount']
+        .sum()
+        .sort_values(ascending=False))
+
+    insurance_counts = (
+        df['insurance_type']
+        .value_counts()
+        .reindex(insurance_support.index))  #match order
+
+    df['amount'] = pd.to_numeric(df['amount'], errors='coerce')  #remove missing amounts
+    valid_df = df[df['amount'].notna()]
+
+    support_totals = valid_df.groupby('insurance_type')['amount'].sum() #group and calculate totals
+    patient_counts = valid_df.groupby('insurance_type')['amount'].count()
+
+    per_capita_support = (support_totals / patient_counts).sort_values(ascending=False) #calculate per capita support
+
+    #Plots for Insurance Type:
+
+    st.write("### Average Support by Insurance Type")
+    st.bar_chart(per_capita_support)
+
+    st.write("Table (Average $ Support by Insurance Type):")
+    st.dataframe(per_capita_support)
+
+    st.write("Table (Number of Patients by Insurance Type):")
+    st.dataframe(insurance_counts)
+
+    st.write("### Total $ Support Given by Insurance Type")
+    st.bar_chart(insurance_support)
+
+    st.write("Table (Total $ Support by Insurance Type):")
+    st.dataframe(insurance_support)
+
+
 
 elif page == "Time to Send Support":
     st.subheader("Time Between Request and Support")
@@ -67,3 +359,4 @@ elif page == "Unused Grants & Averages":
 
 elif page == "Impact Summary":
     st.subheader("Yearly Impact Summary for Stakeholders")
+
