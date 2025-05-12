@@ -430,5 +430,42 @@ elif page == "Unused Grants & Averages":
     st.dataframe(avg_amount_by_type)
 
 elif page == "Impact Summary":
-    st.subheader("Yearly Impact Summary for Stakeholders")
+    st.subheader("Past Year Report for Stakeholders")
+
+    df['grant_req_date'] = pd.to_datetime(df['grant_req_date'], errors='coerce') #cleaning the column
+    df['amount'] = pd.to_numeric(df['amount'], errors='coerce')
+    df['type_of_assistance_(class)'] = df['type_of_assistance_(class)'].astype(str).str.strip().str.title()
+
+    summary_choice = st.selectbox(
+        "Select Timeframe for Summary:",
+        ["Since May 13, 2024", "Calendar Year 2025", "Calendar Year 2024"]) #setting options for selectbox
+
+    if summary_choice == "Since May 13, 2024": #selectbox filters
+        start_date = pd.Timestamp("2024-05-13")
+        filtered_df = df[df['grant_req_date'] >= start_date]
+        label = "Since May 13, 2024"
+
+    elif summary_choice == "Calendar Year 2025":
+        filtered_df = df[df['grant_req_date'].dt.year == 2025]
+        label = "Calendar Year 2025"
+
+    else:
+        filtered_df = df[df['grant_req_date'].dt.year == 2024]
+        label = "Calendar Year 2024"
+
+    total_patients = filtered_df['patient_id#'].nunique()
+    total_amount = filtered_df['amount'].sum()
+    avg_grant = total_amount / total_patients if total_patients else 0
+    top_assistance = filtered_df['type_of_assistance_(class)'].value_counts() #calculations
+
+    st.write(f"## Summary – {label}")
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Patients Supported", f"{total_patients:,}")
+    col2.metric("Total Amount Granted", f"${total_amount:,.2f}")
+    col3.metric("Average Grant Per Patient", f"${avg_grant:,.2f}")
+
+    st.write(f"### Types of Assistance – {label}")
+    st.dataframe(top_assistance.rename("Number of Patients"))
+
 
