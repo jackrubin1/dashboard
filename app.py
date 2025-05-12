@@ -380,8 +380,6 @@ elif page == "Time to Send Support":
     st.write("* Excluding responses of No & Yes (they didn't provide a date)")
 
 elif page == "Unused Grants & Averages":
-    st.subheader("Grant Usage and Assistance Averages")
-
     st.subheader("Remaining Grant Amounts, Average Amount Given by Type of Assistance")
 
     df['amount'] = pd.to_numeric(df['amount'], errors='coerce') #cleaning amount column
@@ -417,10 +415,10 @@ elif page == "Unused Grants & Averages":
 
     st.dataframe(avg_remaining_by_year)
 
-    df['type_of_assistance_(class)'] = df['type_of_assistance_(class)'].astype(str).str.strip().str.title() #cleaning assistance type column
+    df['type_of_assistance_class'] = df['type_of_assistance_class'].astype(str).str.strip().str.title() #cleaning assistance type column
 
     avg_amount_by_type = ( #calculating average
-        df.groupby('type_of_assistance_(class)')['amount']
+        df.groupby('type_of_assistance_class')['amount']
         .mean()
         .sort_values(ascending=False))
 
@@ -434,7 +432,7 @@ elif page == "Impact Summary":
 
     df['grant_req_date'] = pd.to_datetime(df['grant_req_date'], errors='coerce') #cleaning the column
     df['amount'] = pd.to_numeric(df['amount'], errors='coerce')
-    df['type_of_assistance_(class)'] = df['type_of_assistance_(class)'].astype(str).str.strip().str.title()
+    df['type_of_assistance_class'] = df['type_of_assistance_class'].astype(str).str.strip().str.title()
 
     summary_choice = st.selectbox(
         "Select Timeframe for Summary:",
@@ -456,7 +454,7 @@ elif page == "Impact Summary":
     total_patients = filtered_df['patient_id#'].nunique()
     total_amount = filtered_df['amount'].sum()
     avg_grant = total_amount / total_patients if total_patients else 0
-    top_assistance = filtered_df['type_of_assistance_(class)'].value_counts() #calculations
+    top_assistance = filtered_df['type_of_assistance_class'].value_counts() #calculations
 
     st.write(f"## Summary – {label}")
 
@@ -467,5 +465,3 @@ elif page == "Impact Summary":
 
     st.write(f"### Types of Assistance – {label}")
     st.dataframe(top_assistance.rename("Number of Patients"))
-
-
