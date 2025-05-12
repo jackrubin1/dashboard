@@ -20,12 +20,12 @@ df['type_of_assistance_class'] = df['type_of_assistance_class'].astype(str).str.
 
 st.title("Hope Foundation Dashboard")
 
-st.sidebar.title("Navigation")
+st.sidebar.title("Page Select:")
 page = st.sidebar.radio("Go to",
     ["Ready for Review",
     "Support by Demographics",
     "Time to Send Support",
-    "Unused Grants & Averages",
+    "Unused Grants",
     "Stakeholder Summary"])
 
 if page == "Ready for Review":
@@ -200,9 +200,10 @@ elif page == "Time to Send Support":
     selected_stats = summary.drop(['25%', '50%', '75%']) #dropping irrelevant stats from table
     st.write(selected_stats)
 
-    st.write("* Excluding responses of No & Yes to 'payment_submitted?' (they didn't provide a date received)")
+    st.write("* Excluding responses of No & Yes to 'payment_submitted?' (Date Not Provided)")
+    st.write("* count = number of respondents applicable; mean = average; std = standard deviation")
 
-elif page == "Unused Grants & Averages": 
+elif page == "Unused Grants": 
     
     st.subheader("Leftover Grants")
 
