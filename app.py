@@ -161,6 +161,9 @@ elif page == "Support by Demographics":
 
         st.write("# Support by Insurance Type:")
 
+        st.write("### Average $ Support by Insurance Type")
+        st.bar_chart(per_capita_support)  
+
         col1, col2 = st.columns(2)
         with col1:
             st.write("Average $ Support by Insurance Type")
@@ -171,9 +174,6 @@ elif page == "Support by Demographics":
 
         st.write("### Total $ Support by Insurance Type")
         st.bar_chart(support_totals.sort_values(ascending=False))  
-
-        st.write("### Average $ Support by Insurance Type")
-        st.bar_chart(per_capita_support)  
 
 elif page == "Time to Send Support":
 
@@ -201,7 +201,7 @@ elif page == "Time to Send Support":
     st.write(selected_stats)
 
     st.write("* Excluding responses of No & Yes to 'payment_submitted?' (Date Not Provided)")
-    st.write("* count = number of respondents applicable; mean = average; std = standard deviation")
+    st.write("* Count = Number of respondents applicable")
 
 elif page == "Unused Grants": 
     
